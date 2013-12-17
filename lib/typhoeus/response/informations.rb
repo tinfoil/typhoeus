@@ -205,7 +205,8 @@ module Typhoeus
       # @return [ Array<Typhoeus::Response> ] The redirections
       def redirections
         return [] unless response_headers
-        response_headers.split("\r\n\r\n")[0..-2].map{ |h| Response.new(:response_headers => h) }
+        # Reject intermediate 2xx responses, as they come from the proxy establishing a connection.
+        response_headers.split("\r\n\r\n")[0..-2].reject{ |h| h =~ /HTTP\/\S+ 2\d{2}(?:$| )/ }.map{ |h| Response.new(:response_headers => h) }
       end
     end
   end
