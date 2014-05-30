@@ -14,7 +14,7 @@ module Typhoeus
       #
       # @return [ Array<Typhoeus::Request> ] The queued requests.
       def queued_requests
-        @queued_requests ||= []
+        @queued_requests ||= [].extend(MonitorMixin)
       end
 
       # Abort the current hydra run as good as
@@ -25,7 +25,7 @@ module Typhoeus
       # @example Abort hydra.
       #   hydra.abort
       def abort
-        queued_requests.clear
+        queued_requests.synchronize { queued_requests.clear }
       end
 
       # Enqueues a request in order to be performed
@@ -37,7 +37,7 @@ module Typhoeus
       #   hydra.queue(request)
       def queue(request)
         request.hydra = self
-        queued_requests << request
+        queued_requests.synchronize { queued_requests << request }
       end
 
       # Pushes a request to the front of the queue,
@@ -48,7 +48,7 @@ module Typhoeus
       #   hydra.queue_front(request)
       def queue_front(request)
         request.hydra = self
-        queued_requests.unshift request
+        queued_requests.synchronize { queued_requests.unshift request }
       end
 
       # Removes a request from queued_requests and
@@ -60,7 +60,7 @@ module Typhoeus
       #
       # @since 0.6.4
       def dequeue
-        add(queued_requests.shift) unless queued_requests.empty?
+        queued_requests.synchronize { add(queued_requests.shift) unless queued_requests.empty? }
       end
     end
   end
