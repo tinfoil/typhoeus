@@ -39,6 +39,30 @@ describe "Rack::Typhoeus::Middleware::ParamsDecoder::Helper" do
           end
         end
 
+        context "when longer and more complex" do
+          let(:params) do
+            {
+              :ids => {
+                "0"  => "407304",
+                "1"  => "407305",
+                "2"  => "407306",
+                "3"  => "407307",
+                "4"  => "407308",
+                "5"  => "407309",
+                "6"  => "407310",
+                "7"  => "407311",
+                "8"  => "407312",
+                "9"  => "407313",
+                "10" => "327012"
+              }
+            }
+          end
+
+          it "decodes ensuring arrays maintain their original order" do
+            expect(decoded[:ids]).to eq(["407304", "407305", "407306", "407307", "407308", "407309", "407310", "407311", "407312", "407313", "327012"])
+          end
+        end
+
         context "when nested" do
           let(:params) do
             { :array => { '0' => 0, '1' => { '0' => 'sub0', '1' => 'sub1' } } }
@@ -82,13 +106,13 @@ describe "Rack::Typhoeus::Middleware::ParamsDecoder::Helper" do
       context "and its 0" do
         let(:params){ {'0' => 1} }
         it 'returns true' do
-          expect(encoded).to be_true
+          expect(encoded).to be_truthy
         end
       end
       context "and its not 0" do
         let(:params){ {'some-key' => 1}}
         it 'returns false' do
-          expect(encoded).to be_false
+          expect(encoded).to be_falsey
         end
       end
     end
@@ -97,7 +121,7 @@ describe "Rack::Typhoeus::Middleware::ParamsDecoder::Helper" do
       let(:params) { Hash[12.times.map {|i| [i, (i+65).chr]}] }
 
       it "returns true" do
-        expect(encoded).to be_true
+        expect(encoded).to be_truthy
       end
     end
 
@@ -105,7 +129,7 @@ describe "Rack::Typhoeus::Middleware::ParamsDecoder::Helper" do
       let(:params) { {:a => 1} }
 
       it "returns false" do
-        expect(encoded).to be_false
+        expect(encoded).to be_falsey
       end
     end
   end

@@ -74,7 +74,7 @@ The response object will be set after the request is run.
 response = request.response
 response.code
 response.total_time
-response.headers_hash
+response.headers
 response.body
 ```
 
@@ -165,25 +165,54 @@ request.run
 
 ### Making Parallel Requests
 
-Generally, you should be running requests through hydra. Here is how that looks
+Generally, you should be running requests through hydra. Here is how that looks:
 
 ```ruby
 hydra = Typhoeus::Hydra.hydra
 
-first_request = Typhoeus::Request.new("www.example.com/posts/1.json")
+first_request = Typhoeus::Request.new("http://example.com/posts/1")
 first_request.on_complete do |response|
-  third_request = Typhoeus::Request.new("www.example.com/posts/3.json")
+  third_url = response.body
+  third_request = Typhoeus::Request.new(third_url)
   hydra.queue third_request
 end
-second_request = Typhoeus::Request.new("www.example.com/posts/2.json")
+second_request = Typhoeus::Request.new("http://example.com/posts/2")
 
 hydra.queue first_request
 hydra.queue second_request
-# this is a blocking call that returns once all requests are complete
-hydra.run
+hydra.run # this is a blocking call that returns once all requests are complete
 ```
 
-The execution of that code goes something like this. The first and second requests are built and queued. When hydra is run the first and second requests run in parallel. When the first request completes, the third request is then built and queued up. The moment it is queued Hydra starts executing it.  Meanwhile the second request would continue to run (or it could have completed before the first). Once the third request is done, `hydra.run` returns.
+The execution of that code goes something like this. The first and second requests are built and queued. When hydra is run the first and second requests run in parallel. When the first request completes, the third request is then built and queued, in this example based on the result of the first request. The moment it is queued Hydra starts executing it.  Meanwhile the second request would continue to run (or it could have completed before the first). Once the third request is done, `hydra.run` returns.
+
+How to get an array of response bodies back after executing a queue:
+
+```ruby
+hydra = Typhoeus::Hydra.new
+requests = 10.times.map { 
+  request = Typhoeus::Request.new("www.example.com", followlocation: true)
+  hydra.queue(request) 
+  request
+}
+hydra.run
+
+responses = requests.map { |request|
+  request.response.body
+}
+```
+`hydra.run` is a blocking request. You can also use the `on_complete` callback to handle each request as it completes:
+
+```ruby
+hydra = Typhoeus::Hydra.new
+10.times do 
+  request = Typhoeus::Request.new("www.example.com", followlocation: true)
+  request.on_complete do |response|
+    #do_something_with response
+  end
+  hydra.queue(request)
+end
+hydra.run
+```
 
 ### Specifying Max Concurrency
 
@@ -328,7 +357,7 @@ There are two different timeouts available: [`timeout`](http://curl.haxx.se/libc
 and [`connecttimeout`](http://curl.haxx.se/libcurl/c/curl_easy_setopt.html#CURLOPTCONNECTTIMEOUT). `timeout` is the
 maximum time in seconds that you allow the libcurl transfer operation to take and `connecttimeout` is the maximum
 time in seconds that you allow the connection to the server to take. These two are always available, while `timeout_ms` ond
-`connecttimeout_ms` accept milliseconds but only an option when curl is build with `c-ares`, it will use `timout` or `connecttimeout` otherwise.
+`connecttimeout_ms` accept milliseconds but only an option when curl is build with `c-ares`, it will use `timeout` or `connecttimeout` otherwise.
 
 ### Following Redirections
 
@@ -349,6 +378,14 @@ Typhoeus::Request.get("www.example.com", userpwd: "user:password")
 ```ruby
 Typhoeus.get("www.example.com", accept_encoding: "gzip")
 ```
+
+The above has a different behavior than setting the header directly in the header hash, eg:
+```ruby
+Typhoeus.get("www.example.com", headers: {"Accept-Encoding" => "gzip"})
+```
+
+Setting the header hash directly will not include the `--compressed` flag in the libcurl command and therefore libcurl will not decompress the response.  If you want the `--compressed` flag to be added automatically, set `:accept_encoding` Typhoeus option.
+
 
 ### Cookies
 
@@ -389,7 +426,10 @@ certificate subject is \*.host.com). You can disable host verification. Like
 this:
 
 ```ruby
+# host checking enabled
 Typhoeus.get("https://www.example.com", ssl_verifyhost: 2)
+# host checking disabled
+Typhoeus.get("https://www.example.com", ssl_verifyhost: 0)
 ```
 
 ### Verbose debug output

@@ -135,7 +135,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { :ok }
 
           it "returns true" do
-            expect(response.success?).to be_true
+            expect(response.success?).to be_truthy
           end
         end
 
@@ -143,7 +143,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { nil }
 
           it "returns true" do
-            expect(response.success?).to be_true
+            expect(response.success?).to be_truthy
           end
         end
       end
@@ -155,7 +155,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { :ok }
 
           it "returns true" do
-            expect(response.success?).to be_true
+            expect(response.success?).to be_truthy
           end
         end
 
@@ -163,7 +163,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { nil }
 
           it "returns false" do
-            expect(response.success?).to be_false
+            expect(response.success?).to be_falsey
           end
         end
       end
@@ -173,7 +173,7 @@ describe Typhoeus::Response::Status do
       let(:options) { {:return_code => :ok, :response_code => 500} }
 
       it "returns false" do
-        expect(response.success?).to be_false
+        expect(response.success?).to be_falsey
       end
     end
   end
@@ -189,7 +189,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { :ok }
 
           it "returns false" do
-            expect(response.modified?).to be_false
+            expect(response.modified?).to be_falsey
           end
         end
 
@@ -197,7 +197,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { nil }
 
           it "returns false" do
-            expect(response.modified?).to be_false
+            expect(response.modified?).to be_falsey
           end
         end
       end
@@ -209,7 +209,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { :ok }
 
           it "returns false" do
-            expect(response.modified?).to be_false
+            expect(response.modified?).to be_falsey
           end
         end
 
@@ -217,7 +217,7 @@ describe Typhoeus::Response::Status do
           let(:return_code) { nil }
 
           it "returns true" do
-            expect(response.modified?).to be_false
+            expect(response.modified?).to be_falsey
           end
         end
       end
@@ -227,7 +227,7 @@ describe Typhoeus::Response::Status do
       let(:options) { {:return_code => :ok, :response_code => 500} }
 
       it "returns true" do
-        expect(response.modified?).to be_true
+        expect(response.modified?).to be_truthy
       end
     end
   end

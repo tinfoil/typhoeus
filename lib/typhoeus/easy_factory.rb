@@ -49,7 +49,7 @@ module Typhoeus
     def get
       begin
         easy.http_request(
-          request.base_url,
+          request.base_url.to_s,
           request.options.fetch(:method, :get),
           sanitize(request.options)
         )
@@ -105,7 +105,7 @@ module Typhoeus
         request.finish(Response.new(easy.mirror.options))
         Typhoeus::Pool.release(easy)
         if hydra && !hydra.queued_requests.empty?
-          hydra.dequeue
+          hydra.dequeue_many
         end
       end
     end
