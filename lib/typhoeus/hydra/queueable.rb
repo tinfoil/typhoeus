@@ -64,8 +64,8 @@ module Typhoeus
       end
 
       # Removes requests from queued_requests and
-      # adds them to the hydra until max_concurrency
-      # is reached.
+      # adds them to the hydra until max_concurrency or the time-
+      # throttling limit is reached.
       #
       # @example Dequeue requests.
       #   hydra.dequeue_many
@@ -73,7 +73,12 @@ module Typhoeus
       # @since 0.6.8
       def dequeue_many
         number = multi.easy_handles.count
-        until number == max_concurrency || queued_requests.empty?
+        limit = if throttling_enabled?
+                  [max_concurrency, available_throttled_capacity].min
+                else
+                  max_concurrency
+                end
+        until number >= limit || queued_requests.empty?
           add(queued_requests.shift)
           number += 1
         end
