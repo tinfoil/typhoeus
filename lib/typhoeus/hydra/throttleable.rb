@@ -8,11 +8,16 @@ module Typhoeus
       def available_throttled_capacity
         now = Time.now
 
-        @throttle_buffer.capacity.times do
-          if (oldest_timestamp = @throttle_buffer.front) && oldest_timestamp < (now - 1)
-            @throttle_buffer.pop
-          else
-            break
+        if (newest_timestamp = @throttle_buffer.back) && newest_timestamp < (now - 1)
+          # Optimize for the case that enough time has passed to reset the buffer
+          @throttle_buffer.clear
+        else
+          @throttle_buffer.capacity.times do
+            if (oldest_timestamp = @throttle_buffer.front) && oldest_timestamp < (now - 1)
+              @throttle_buffer.pop
+            else
+              break
+            end
           end
         end
 
