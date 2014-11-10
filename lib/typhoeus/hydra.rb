@@ -1,8 +1,10 @@
+require 'circular_queue'
 require 'typhoeus/hydra/addable'
 require 'typhoeus/hydra/before'
 require 'typhoeus/hydra/cacheable'
 require 'typhoeus/hydra/block_connection'
 require 'typhoeus/hydra/memoizable'
+require 'typhoeus/hydra/throttleable'
 require 'typhoeus/hydra/queueable'
 require 'typhoeus/hydra/runnable'
 require 'typhoeus/hydra/stubbable'
@@ -46,11 +48,16 @@ module Typhoeus
     include Hydra::BlockConnection
     include Hydra::Stubbable
     include Hydra::Before
+    include Hydra::Throttleable
     include Hydra::Queueable
 
     # @example Set max_concurrency.
     #   Typhoeus::Hydra.new(max_concurrency: 20)
     attr_accessor :max_concurrency
+
+    # @example Set requests_per_second
+    #   Typhoeus::Hydra.new(requests_per_second: 20)
+    attr_reader :requests_per_second
 
     # @api private
     attr_reader :multi
@@ -89,7 +96,9 @@ module Typhoeus
     def initialize(options = {})
       @options = options
       @max_concurrency = @options.fetch(:max_concurrency, 200)
-      @multi = Ethon::Multi.new(options.reject{|k,_| k==:max_concurrency})
+      @requests_per_second = @options.fetch(:requests_per_second, nil)
+      @throttle_buffer = CircularQueue.new(@requests_per_second) if @requests_per_second
+      @multi = Ethon::Multi.new(options.reject{|k,_| k==:max_concurrency || k==:requests_per_second})
     end
   end
 end

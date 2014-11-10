@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'timecop'
 
 describe Typhoeus::Hydra::Queueable do
   let(:base_url) { "localhost:3001" }
@@ -21,8 +22,8 @@ describe Typhoeus::Hydra::Queueable do
       hydra.queue(request)
       expect(hydra.queued_requests).to include(request)
     end
-    
-    it "adds to front of queued requests" do 
+
+    it "adds to front of queued requests" do
       hydra.queue_front(request)
       expect(hydra.queued_requests.first).to be(request)
     end
@@ -67,6 +68,8 @@ describe Typhoeus::Hydra::Queueable do
       let(:third) { Typhoeus::Request.new("localhost:3001/third") }
       let(:requests) { [first, second, third] }
 
+      before { Timecop.freeze }
+
       it "adds requests from queue to multi" do
         expect(hydra).to receive(:add).with(first)
         expect(hydra).to receive(:add).with(second)
@@ -76,6 +79,46 @@ describe Typhoeus::Hydra::Queueable do
 
       context "when max_concurrency is two" do
         let(:options) { {:max_concurrency => 2} }
+        it "adds requests from queue to multi" do
+          expect(hydra).to receive(:add).with(first)
+          expect(hydra).to receive(:add).with(second)
+          expect(hydra).to_not receive(:add).with(third)
+          hydra.dequeue_many
+        end
+      end
+
+      context "when requests_per_second is two" do
+        let(:options) { {:requests_per_second => 2} }
+        it "adds requests from queue to multi" do
+          expect(hydra).to receive(:add).with(first)
+          expect(hydra).to receive(:add).with(second)
+          expect(hydra).to_not receive(:add).with(third)
+          hydra.dequeue_many
+        end
+      end
+
+      context "when requests_per_second is smaller than max_concurrency" do
+        let(:options) { {:requests_per_second => 2, :max_concurrency => 4} }
+        it "adds requests from queue to multi" do
+          expect(hydra).to receive(:add).with(first)
+          expect(hydra).to receive(:add).with(second)
+          expect(hydra).to_not receive(:add).with(third)
+          hydra.dequeue_many
+        end
+      end
+
+      context "when requests_per_second is larger than max_concurrency" do
+        let(:options) { {:requests_per_second => 4, :max_concurrency => 2} }
+        it "adds requests from queue to multi" do
+          expect(hydra).to receive(:add).with(first)
+          expect(hydra).to receive(:add).with(second)
+          expect(hydra).to_not receive(:add).with(third)
+          hydra.dequeue_many
+        end
+      end
+
+      context "when requests_per_second is equal to max_concurrency" do
+        let(:options) { {:requests_per_second => 2, :max_concurrency => 2} }
         it "adds requests from queue to multi" do
           expect(hydra).to receive(:add).with(first)
           expect(hydra).to receive(:add).with(second)
