@@ -9,13 +9,13 @@ describe Typhoeus::Hydra::Throttleable do
   describe "#throttling_enabled?" do
     context "when requests_per_second is set" do
       specify do
-        hydra.throttling_enabled?.should be true
+        expect(hydra.throttling_enabled?).to be true
       end
     end
     context "when requests_per_second is not set" do
       let(:options) { {} }
       specify do
-        hydra.throttling_enabled?.should be false
+        expect(hydra.throttling_enabled?).to be false
       end
     end
   end
@@ -25,7 +25,7 @@ describe Typhoeus::Hydra::Throttleable do
 
     it "should add a timestamp to the queue" do
       hydra.add(request)
-      hydra.instance_variable_get(:@throttle_buffer).size.should eq(1)
+      expect(hydra.instance_variable_get(:@throttle_buffer).size).to eq(1)
     end
   end
 
@@ -37,7 +37,7 @@ describe Typhoeus::Hydra::Throttleable do
 
     context "when no requests have been added" do
       specify do
-        hydra.available_throttled_capacity.should eq(2)
+        expect(hydra.available_throttled_capacity).to eq(2)
       end
     end
 
@@ -48,7 +48,7 @@ describe Typhoeus::Hydra::Throttleable do
       end
 
       specify do
-        hydra.available_throttled_capacity.should eq(0)
+        expect(hydra.available_throttled_capacity).to eq(0)
       end
     end
 
@@ -61,7 +61,7 @@ describe Typhoeus::Hydra::Throttleable do
 
       specify do
         Timecop.travel(Time.now + 0.51)
-        hydra.available_throttled_capacity.should eq(1)
+        expect(hydra.available_throttled_capacity).to eq(1)
       end
     end
 
@@ -73,7 +73,7 @@ describe Typhoeus::Hydra::Throttleable do
 
       specify do
         Timecop.travel(Time.now + 2)
-        hydra.available_throttled_capacity.should eq(2)
+        expect(hydra.available_throttled_capacity).to eq(2)
       end
     end
   end
