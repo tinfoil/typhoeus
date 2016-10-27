@@ -22,3 +22,4 @@ matrix:
     - rvm: jruby-head
     - rvm: ree
     - rvm: rbx
+    - rvm: rbx-2
