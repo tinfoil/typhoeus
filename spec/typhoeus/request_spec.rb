@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Typhoeus::Request do
   let(:base_url) { "localhost:3001" }
-  let(:options) { {:verbose => true, :headers => { 'User-Agent' => "Fubar" }, :maxredirs => 50} }
+  let(:options) { {:verbose => true, :headers => { 'User-Agent' => "Fubar", 'Expect' => "" }, :maxredirs => 50} }
   let(:request) { Typhoeus::Request.new(base_url, options) }
 
   describe ".url" do
@@ -65,6 +65,27 @@ describe Typhoeus::Request do
       end
     end
 
+    context "when Config.user_agent set" do
+      before { Typhoeus.configure { |config| config.user_agent = "Default" } }
+      after { Typhoeus.configure { |config| config.user_agent = nil } }
+
+      context "with headers" do
+        let(:options) { {:headers => { "User-Agent" => "Fubar" } } }
+
+        it "uses the request options' user agent" do
+          expect(request.options[:headers]["User-Agent"]).to eq("Fubar")
+        end
+      end
+
+      context "without headers" do
+        let(:options) { {:headers => {} } }
+
+        it "uses the global options' user agent" do
+          expect(request.options[:headers]["User-Agent"]).to eq("Default")
+        end
+      end
+    end
+
     context "when Config.verbose set" do
       before { Typhoeus.configure { |config| config.verbose = true} }
       after { Typhoeus.configure { |config| config.verbose = false} }
@@ -86,6 +107,23 @@ describe Typhoeus::Request do
 
         it "respects" do
           expect(request.options[:maxredirs]).to be(1)
+        end
+      end
+    end
+
+    context "when Config.proxy set" do
+      before { Typhoeus.configure { |config| config.proxy = "http://proxy.internal" } }
+      after { Typhoeus.configure { |config| config.proxy = nil } }
+
+      it "respects" do
+        expect(request.options[:proxy]).to eq("http://proxy.internal")
+      end
+
+      context "when option proxy set" do
+        let(:options) { {:proxy => nil} }
+
+        it "does not override" do
+          expect(request.options[:proxy]).to be_nil
         end
       end
     end
@@ -129,7 +167,7 @@ describe Typhoeus::Request do
 
         context "when different order" do
           let(:other_options) {
-            {:headers => { 'User-Agent' => "Fubar" }, :verbose => true }
+            {:headers => { 'User-Agent' => "Fubar", 'Expect' => ""}, :verbose => true }
           }
           let(:other) { Typhoeus::Request.new(base_url, other_options)}
 
@@ -145,7 +183,7 @@ describe Typhoeus::Request do
     context "when request.eql?(other)" do
       context "when different order" do
         let(:other_options) {
-          {:headers => { 'User-Agent' => "Fubar" }, :verbose => true }
+          {:headers => { 'User-Agent' => "Fubar", 'Expect' => "" }, :verbose => true }
         }
         let(:other) { Typhoeus::Request.new(base_url, other_options)}
 
@@ -190,4 +228,5 @@ describe Typhoeus::Request do
       expect(request.encoded_body).to eq("a=1")
     end
   end
+
 end

@@ -86,10 +86,15 @@ module Faraday # :nodoc:
 
         req.on_complete do |resp|
           if resp.timed_out?
-            if parallel?(env)
-              # TODO: error callback in async mode
-            else
+            env[:typhoeus_timed_out] = true
+            unless parallel?(env)
               raise Faraday::Error::TimeoutError, "request timed out"
+            end
+          elsif resp.response_code == 0
+            env[:typhoeus_connection_failed] = true
+            env[:typhoeus_return_message] = resp.return_message
+            unless parallel?(env)
+              raise Faraday::Error::ConnectionFailed, resp.return_message
             end
           end
 
@@ -128,17 +133,18 @@ module Faraday # :nodoc:
         proxy = env[:request][:proxy]
         return unless proxy
 
-        req.options[:proxy] = "#{proxy[:uri].host}:#{proxy[:uri].port}"
+        req.options[:proxy] = "#{proxy[:uri].scheme}://#{proxy[:uri].host}:#{proxy[:uri].port}"
 
         if proxy[:user] && proxy[:password]
+          req.options[:proxyauth] = :any
           req.options[:proxyuserpwd] = "#{proxy[:user]}:#{proxy[:password]}"
         end
       end
 
       def configure_timeout(req, env)
         env_req = env[:request]
-        req.options[:timeout_ms] = (env_req[:timeout] * 1000)             if env_req[:timeout]
-        req.options[:connecttimeout_ms] = (env_req[:open_timeout] * 1000) if env_req[:open_timeout]
+        req.options[:timeout_ms] = (env_req[:timeout] * 1000).to_i             if env_req[:timeout]
+        req.options[:connecttimeout_ms] = (env_req[:open_timeout] * 1000).to_i if env_req[:open_timeout]
       end
 
       def configure_socket(req, env)

@@ -16,6 +16,45 @@ describe Typhoeus::Pool do
       Typhoeus::Pool.release(easy)
     end
 
+    it "flush cookies to disk" do
+      expect(easy).to receive(:cookielist=).with('flush')
+      expect(easy).to receive(:reset)
+      expect(easy).to receive(:cookielist=).with('all')
+      Typhoeus::Pool.release(easy)
+    end
+
+    it "writes cookies to disk" do
+      tempfile1 = Tempfile.new('cookies')
+      tempfile2 = Tempfile.new('cookies')
+
+      easy.cookiejar = tempfile1.path
+      easy.url = "localhost:3001/cookies-test"
+      easy.perform
+
+      Typhoeus::Pool.release(easy)
+
+      expect(File.zero?(tempfile1.path)).to be(false)
+      expect(File.read(tempfile1.path)).to match(/\s+foo\s+bar$/)
+      expect(File.read(tempfile1.path)).to match(/\s+bar\s+foo$/)
+
+      # do it again - and check if tempfile1 wasn't change
+      easy.cookiejar = tempfile2.path
+      easy.url = "localhost:3001/cookies-test2"
+      easy.perform
+
+      Typhoeus::Pool.release(easy)
+
+      # tempfile 1
+      expect(File.zero?(tempfile1.path)).to be(false)
+      expect(File.read(tempfile1.path)).to match(/\s+foo\s+bar$/)
+      expect(File.read(tempfile1.path)).to match(/\s+bar\s+foo$/)
+
+      # tempfile2
+      expect(File.zero?(tempfile2.path)).to be(false)
+      expect(File.read(tempfile2.path)).to match(/\s+foo2\s+bar$/)
+      expect(File.read(tempfile2.path)).to match(/\s+bar2\s+foo$/)
+    end
+
     it "puts easy back into pool" do
       Typhoeus::Pool.release(easy)
       expect(Typhoeus::Pool.send(:easies)).to include(easy)
@@ -57,6 +96,23 @@ describe Typhoeus::Pool do
           end.map(&:join)
           expect(array.uniq.size).to eq(10)
         end
+      end
+    end
+
+    context "when forked" do
+      before do
+        allow(Process).to receive(:pid).and_return(1)
+        Typhoeus::Pool.send(:easies) << easy
+        allow(Process).to receive(:pid).and_return(2)
+      end
+
+      after do
+        allow(Process).to receive(:pid).and_call_original
+        Typhoeus::Pool.instance_variable_set(:@pid, Process.pid)
+      end
+
+      it "creates" do
+        expect(Typhoeus::Pool.get).to_not eq(easy)
       end
     end
   end

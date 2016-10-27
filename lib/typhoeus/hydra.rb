@@ -95,7 +95,7 @@ module Typhoeus
     #   Ethon::Multi#initialize
     def initialize(options = {})
       @options = options
-      @max_concurrency = @options.fetch(:max_concurrency, 200)
+      @max_concurrency = Integer(@options.fetch(:max_concurrency, 200))
       @requests_per_second = @options.fetch(:requests_per_second, nil)
       @throttle_buffer = CircularQueue.new(@requests_per_second) if @requests_per_second
       @multi = Ethon::Multi.new(options.reject{|k,_| k==:max_concurrency || k==:requests_per_second})
