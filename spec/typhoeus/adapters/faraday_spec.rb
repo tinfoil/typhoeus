@@ -123,6 +123,37 @@ describe Faraday::Adapter::Typhoeus do
     end
   end
 
+  context "when the connection failed" do
+    before do
+      stub = Typhoeus::Response.new \
+          :response_code => 0,
+          :return_code => 0,
+          :mock          => true
+
+      Typhoeus.stub(base_url + '/').and_return(stub)
+    end
+
+    context "when parallel" do
+      it "isn't successful" do
+        response = nil
+        conn.in_parallel { response = conn.get("/") }
+        expect(response.success?).to be_falsey
+      end
+
+      it "translates the response code into an error message" do
+        response = nil
+        conn.in_parallel { response = conn.get("/") }
+        expect(response.env[:typhoeus_return_message]).to eq("No error")
+      end
+    end
+
+    context "when not parallel" do
+      it "raises an error" do
+        expect { conn.get("/") }.to raise_error(Faraday::Error::ConnectionFailed, "No error")
+      end
+    end
+  end
+
   describe "#configure_socket" do
     let(:env) { { :request => { :bind => { :host => "interface" } } } }
 
@@ -159,16 +190,16 @@ describe Faraday::Adapter::Typhoeus do
     before { adapter.method(:configure_proxy).call(request, env) }
 
     context "when proxy" do
-      let(:env) { { :request => { :proxy => { :uri => double(:host => "localhost", :port => "3001") } } } }
+      let(:env) { { :request => { :proxy => { :uri => double(:scheme => 'http', :host => "localhost", :port => "3001") } } } }
 
       it "sets proxy" do
-        expect(request.options[:proxy]).to eq("localhost:3001")
+        expect(request.options[:proxy]).to eq("http://localhost:3001")
       end
 
       context "when username and password" do
         let(:env) do
           { :request => { :proxy => {
-            :uri => double(:host => :a, :port => :b),
+            :uri => double(:scheme => 'http', :host => :a, :port => :b),
             :user => "a",
             :password => "b"
           } } }

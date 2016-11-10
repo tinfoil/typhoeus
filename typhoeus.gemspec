@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = ">= 1.3.6"
   s.license = 'MIT'
 
-  s.add_dependency('ethon', [">= 0.7.1"])
+  s.add_dependency('ethon', [">= 0.9.0"])
   s.add_dependency('circular_queue')
   s.add_development_dependency('timecop')
 

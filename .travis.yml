@@ -1,14 +1,18 @@
+language: ruby
 script: "bundle exec rake"
+sudo: false
 rvm:
   - 1.9.2
   - 1.9.3
   - 2.0.0
-  - 2.1.4
+  - 2.1.8
+  - 2.2.4
+  - 2.3.0
   - ruby-head
   - jruby-head
   - jruby-19mode
-  - rbx-18mode
-  - rbx-19mode
+  - rbx  # It's actually RBX 3
+  - rbx-2
 matrix:
   fast_finish: true
   allow_failures:
@@ -16,6 +20,6 @@ matrix:
     - rvm: jruby-18mode
     - rvm: ruby-head
     - rvm: jruby-head
-    - rvm: rbx-18mode
-    - rvm: rbx-19mode
     - rvm: ree
+    - rvm: rbx
+    - rvm: rbx-2

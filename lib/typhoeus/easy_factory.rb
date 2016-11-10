@@ -1,3 +1,5 @@
+require 'set'
+
 module Typhoeus
 
   # This is a Factory for easies to be used in the hydra.
@@ -7,6 +9,34 @@ module Typhoeus
   #
   # @api private
   class EasyFactory
+
+    RENAMED_OPTIONS =  {
+          :auth_method => :httpauth,
+          :connect_timeout => :connecttimeout,
+          :encoding => :accept_encoding,
+          :follow_location => :followlocation,
+          :max_redirects => :maxredirs,
+          :proxy_type => :proxytype,
+          :ssl_cacert => :cainfo,
+          :ssl_capath => :capath,
+          :ssl_cert => :sslcert,
+          :ssl_cert_type => :sslcerttype,
+          :ssl_key => :sslkey,
+          :ssl_key_password => :keypasswd,
+          :ssl_key_type => :sslkeytype,
+          :ssl_version => :sslversion,
+      }
+
+    CHANGED_OPTIONS =  {
+          :disable_ssl_host_verification => :ssl_verifyhost,
+          :disable_ssl_peer_verification => :ssl_verifypeer,
+          :proxy_auth_method => :proxyauth,
+      }
+
+    REMOVED_OPTIONS =  Set.new([:cache_key_basis, :cache_timeout, :user_agent])
+
+    SANITIZE_IGNORE  = Set.new([:method, :cache_ttl])
+    SANITIZE_TIMEOUT = Set.new([:timeout_ms, :connecttimeout_ms])
 
     # Returns the request provided.
     #
@@ -64,17 +94,41 @@ module Typhoeus
     private
 
     def sanitize(options)
-      sanitized = {}
+      # set nosignal to true by default
+      # this improves thread safety and timeout behavior
+      sanitized = {:nosignal => true}
       request.options.each do |k,v|
-        next if [:method, :cache_ttl].include?(k.to_sym)
-        if new_option = renamed_options[k.to_sym]
+        s = k.to_sym
+        next if SANITIZE_IGNORE.include?(s)
+        if new_option = RENAMED_OPTIONS[k.to_sym]
           warn("Deprecated option #{k}. Please use #{new_option} instead.")
           sanitized[new_option] = v
+        # sanitize timeouts
+        elsif SANITIZE_TIMEOUT.include?(s)
+          if !v.integer?
+            warn("Value '#{v}' for option '#{k}' must be integer.")
+          end
+          sanitized[k] = v.ceil
         else
           sanitized[k] = v
         end
       end
+
+      sanitize_timeout!(sanitized, :timeout)
+      sanitize_timeout!(sanitized, :connecttimeout)
+
       sanitized
+    end
+
+    def sanitize_timeout!(options, timeout)
+      timeout_ms = :"#{timeout}_ms"
+      if options[timeout] && options[timeout].round != options[timeout]
+        if !options[timeout_ms]
+          options[timeout_ms] = (options[timeout]*1000).ceil
+        end
+        options[timeout] = options[timeout].ceil
+      end
+      options
     end
 
     # Sets on_complete callback on easy in order to be able to
@@ -91,8 +145,8 @@ module Typhoeus
           response = Response.new(Ethon::Easy::Mirror.from_easy(easy).options)
           request.execute_headers_callbacks(response)
         end
-        easy.on_body do |chunk, easy|
-          request.on_body.each do |callback|
+        request.on_body.each do |callback|
+          easy.on_body do |chunk, easy|
             callback.call(chunk, response)
           end
         end
@@ -110,41 +164,10 @@ module Typhoeus
       end
     end
 
-    def renamed_options
-      {
-        :auth_method => :httpauth,
-        :connect_timeout => :connecttimeout,
-        :encoding => :accept_encoding,
-        :follow_location => :followlocation,
-        :max_redirects => :maxredirs,
-        :proxy_type => :proxytype,
-        :ssl_cacert => :cainfo,
-        :ssl_capath => :capath,
-        :ssl_cert => :sslcert,
-        :ssl_cert_type => :sslcerttype,
-        :ssl_key => :sslkey,
-        :ssl_key_password => :keypasswd,
-        :ssl_key_type => :sslkeytype,
-        :ssl_version => :sslversion,
-      }
-    end
-
-    def changed_options
-      {
-        :disable_ssl_host_verification => :ssl_verifyhost,
-        :disable_ssl_peer_verification => :ssl_verifypeer,
-        :proxy_auth_method => :proxyauth,
-      }
-    end
-
-    def removed_options
-      [:cache_key_basis, :cache_timeout, :user_agent]
-    end
-
     def provide_help(option)
-      if new_option = changed_options[option.to_sym]
+      if new_option = CHANGED_OPTIONS[option.to_sym]
         "\nPlease try #{new_option} instead of #{option}." if new_option
-      elsif removed_options.include?(option.to_sym)
+      elsif REMOVED_OPTIONS.include?(option.to_sym)
         "\nThe option #{option} was removed."
       end
     end
