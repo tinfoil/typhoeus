@@ -102,7 +102,7 @@ describe Typhoeus::Response::Header do
         end
 
         it 'ignores it' do
-          expect(header).to eq({ 'Date' => 'Fri, 29 Jun 2012 10:09:23 GMT' })
+          expect(header).to eq({ 'date' => 'Fri, 29 Jun 2012 10:09:23 GMT' })
         end
       end
     end

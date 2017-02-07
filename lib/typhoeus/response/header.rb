@@ -16,9 +16,8 @@ module Typhoeus
       # @param [ String ] raw The raw header.
       def initialize(raw)
         @raw = raw
-        @sanitized = {}
         parse
-        set_default_proc_on(self, lambda { |h, k| @sanitized[k.to_s.downcase] })
+        set_default_proc_on(self, lambda { |h, k| self[k.to_s.downcase] })
       end
 
       # Parses the raw header.
@@ -50,12 +49,11 @@ module Typhoeus
         process_pair(key.strip, value.strip)
       end
 
-      # Sets key value pair for self and @sanitized.
+      # Sets key value pair for self.
       #
       # @return [ void ]
       def process_pair(key, value)
-        set_value(key, value, self)
-        @sanitized[key.downcase] = self[key]
+        set_value(key.downcase, value, self)
       end
 
       # Sets value for key in specified hash
