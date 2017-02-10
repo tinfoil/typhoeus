@@ -17,7 +17,10 @@ module Typhoeus
       def initialize(raw)
         @raw = raw
         parse
-        set_default_proc_on(self, lambda { |h, k| self[k.to_s.downcase] })
+      end
+
+      def [](key)
+        super(key.to_s.downcase)
       end
 
       # Parses the raw header.
@@ -80,17 +83,6 @@ module Typhoeus
       # @return [ String ] The raw header.
       def raw
         @raw || ''
-      end
-
-      # Sets the default proc for the specified hash independent of the Ruby version.
-      #
-      # @return [ void ]
-      def set_default_proc_on(hash, default_proc)
-        if hash.respond_to?(:default_proc=)
-          hash.default_proc = default_proc
-        else
-          hash.replace(Hash.new(&default_proc).merge(hash))
-        end
       end
     end
   end
