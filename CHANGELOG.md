@@ -2,7 +2,15 @@
 
 ## Master
 
-[Full Changelog](http://github.com/typhoeus/typhoeus/compare/v1.1.0...master)
+[Full Changelog](http://github.com/typhoeus/typhoeus/compare/v1.1.2...master)
+
+## 1.1.2
+
+[Full Changelog](http://github.com/typhoeus/typhoeus/compare/v1.1.1...v1.1.2)
+
+## 1.1.1
+
+[Full Changelog](http://github.com/typhoeus/typhoeus/compare/v1.1.0...v1.1.1)
 
 ## 1.1.0
 

@@ -307,38 +307,25 @@ Typhoeus.get("www.example.com").cached?
 For use with [Dalli](https://github.com/mperham/dalli):
 
 ```ruby
-class Cache
-  def initialize
-    @client = Dalli::Client.new
-  end
-
-  def get(request)
-    @client.get(request.cache_key)
-  end
-
-  def set(request, response)
-    @client.set(request.cache_key, response)
-  end
-end
-
-Typhoeus::Config.cache = Cache.new
+dalli = Dalli::Client.new(...)
+Typhoeus::Config.cache = Typhoeus::Cache::Dalli.new(dalli)
 ```
 
 For use with Rails:
 
 ```ruby
-class Cache
-  def get(request)
-    Rails.cache.read(request)
-  end
-
-  def set(request, response)
-    Rails.cache.write(request, response)
-  end
-end
-
-Typhoeus::Config.cache = Cache.new
+Typhoeus::Config.cache = Typhoeus::Cache::Rails.new
 ```
+
+For use with [Redis](https://github.com/redis/redis-rb):
+
+```ruby
+redis = Redis.new(...)
+Typhoeus::Config.cache = Typhoeus::Cache::Redis.new(redis)
+```
+
+All three of these adapters take an optional keyword argument `default_ttl`, which sets a default
+TTL on cached responses (in seconds), for requests which do not have a cache TTL set.
 
 ### Direct Stubbing
 
@@ -397,7 +384,7 @@ and [`connecttimeout`](http://curl.haxx.se/libcurl/c/curl_easy_setopt.html#CURLO
 `timeout` is the time limit for the entire request in seconds.
 `connecttimeout` is the time limit for just the connection phase, again in seconds.
 
-There are two additional more fine grained opptions `timeout_ms` and
+There are two additional more fine grained options `timeout_ms` and
 `connecttimeout_ms`. These options offer millisecond precision but are not always available (for instance on linux if `nosignal` is not set to true).
 
 When you pass a floating point `timeout` (or `connecttimeout`) Typhoeus will set `timeout_ms` for you if it has not been defined. The actual timeout values passed to curl will always be rounded up.
