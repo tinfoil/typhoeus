@@ -7,3 +7,4 @@ coverage
 check.sh
 tags
 .bundle/
+.tool-versions
