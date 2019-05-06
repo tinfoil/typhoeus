@@ -191,6 +191,19 @@ end
 request.run
 ```
 
+If you need to interrupt the stream halfway,
+you can return the `:abort` symbol from the `on_body` block, example:
+
+```ruby
+request.on_body do |chunk|
+  buffer << chunk
+  :abort if buffer.size > 1024 * 1024
+end
+```
+
+This will properly stop the stream internally and avoid any memory leak which
+may happen if you interrupt with something like a `return`, `throw` or `raise`.
+
 ### Making Parallel Requests
 
 Generally, you should be running requests through hydra. Here is how that looks:
@@ -240,6 +253,33 @@ hydra = Typhoeus::Hydra.new
   hydra.queue(request)
 end
 hydra.run
+```
+
+### Making Parallel Requests with Faraday + Typhoeus
+
+```ruby
+require 'faraday'
+
+conn = Faraday.new(:url => 'http://httppage.com') do |builder|
+  builder.request  :url_encoded
+  builder.response :logger
+  builder.adapter  :typhoeus
+end
+
+conn.in_parallel do
+  response1 = conn.get('/first')
+  response2 = conn.get('/second')
+
+  # these will return nil here since the
+  # requests have not been completed
+  response1.body
+  response2.body
+end
+
+# after it has been completed the response information is fully available
+# response1.status, etc
+response1.body
+response2.body
 ```
 
 ### Specifying Max Concurrency
@@ -326,6 +366,14 @@ Typhoeus::Config.cache = Typhoeus::Cache::Redis.new(redis)
 
 All three of these adapters take an optional keyword argument `default_ttl`, which sets a default
 TTL on cached responses (in seconds), for requests which do not have a cache TTL set.
+
+You may also selectively choose not to cache by setting `cache` to `false` on a request or to use
+a different adapter.
+
+```ruby
+cache = Cache.new
+Typhoeus.get("www.example.com", cache: cache)
+```
 
 ### Direct Stubbing
 
